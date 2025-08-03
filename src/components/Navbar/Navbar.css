@@ -1,0 +1,26 @@
+/* Navbar styles are now handled in index.css for better integration */
+.navbar {
+  /* Styles are defined in index.css */
+}
+
+.navbar-content {
+  /* Styles are defined in index.css */
+}
+
+.navbar-brand {
+  /* Styles are defined in index.css */
+}
+
+.navbar-logo {
+  /* Styles are defined in index.css */
+}
+
+.navbar-title {
+  /* Styles are defined in index.css */
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
