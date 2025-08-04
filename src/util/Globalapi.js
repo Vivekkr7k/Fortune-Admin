@@ -5,6 +5,8 @@ export const BASE_URL = 'https://api.fortune-india.co.in';
 export const FOOD_API = {
   LIST: `${BASE_URL}/api/food/list`,
   ADD: `${BASE_URL}/api/food/add`,
+  GET_BY_ID: (id) => `${BASE_URL}/api/food/${id}`,
+  UPDATE: (id) => `${BASE_URL}/api/food/${id}`,
   REMOVE: `${BASE_URL}/api/food/remove`,
 };
 

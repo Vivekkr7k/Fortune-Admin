@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './List.css';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FOOD_API } from '../../util/Globalapi';
+import { FOOD_API, CATEGORY_API, SUBCATEGORY_API } from '../../util/Globalapi';
 
 // Icon component
 const Icon = ({ name, className = "" }) => (
@@ -15,6 +15,17 @@ const List = ({ url }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('name');
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    shippingCharge: '',
+    category: '',
+    subcategory: ''
+  });
 
   const fetchList = async () => {
     try {
@@ -53,8 +64,94 @@ const List = ({ url }) => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get(CATEGORY_API.ALL);
+      if (response.data.success) {
+        setCategories(response.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories', error);
+    }
+  };
+
+  const fetchSubcategories = async (categoryId) => {
+    try {
+      const response = await axios.get(SUBCATEGORY_API.BY_CATEGORY(categoryId));
+      if (response.data.success) {
+        setSubcategories(response.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch subcategories', error);
+    }
+  };
+
+  const handleEdit = (product) => {
+    setEditingProduct(product);
+    setEditFormData({
+      name: product.name,
+      description: product.description,
+      price: product.price.toString(),
+      shippingCharge: product.shippingCharge?.toString() || '550',
+      category: product.category?._id || '',
+      subcategory: product.subcategory?._id || ''
+    });
+    if (product.category?._id) {
+      fetchSubcategories(product.category._id);
+    }
+  };
+
+  const handleEditChange = (event) => {
+    const { name, value } = event.target;
+    setEditFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'category') {
+      fetchSubcategories(value);
+      setEditFormData(prev => ({ ...prev, subcategory: '' }));
+    }
+  };
+
+  const handleUpdateProduct = async () => {
+    try {
+      const payload = {
+        name: editFormData.name,
+        description: editFormData.description,
+        price: Number(editFormData.price),
+        shippingCharge: Number(editFormData.shippingCharge),
+        category: editFormData.category,
+        subcategory: editFormData.subcategory
+      };
+
+      const response = await axios.put(FOOD_API.UPDATE(editingProduct._id), payload);
+      
+      if (response.data.success) {
+        toast.success('Product updated successfully');
+        setEditingProduct(null);
+        fetchList();
+      } else {
+        toast.error(response.data.message || 'Error updating product');
+      }
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast.error(error.response?.data?.message || 'Error updating product');
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingProduct(null);
+    setEditFormData({
+      name: '',
+      description: '',
+      price: '',
+      shippingCharge: '',
+      category: '',
+      subcategory: ''
+    });
+  };
+
   useEffect(() => {
     fetchList();
+    fetchCategories();
   }, [url]);
 
   // Filter and sort products
@@ -80,7 +177,7 @@ const List = ({ url }) => {
     });
 
   // Get unique categories for filter
-  const categories = ['all', ...new Set(list.map(item => item.category?.name).filter(Boolean))];
+  const categoriesForFilter = ['all', ...new Set(list.map(item => item.category?.name).filter(Boolean))];
 
   return (
     <div className="list-container">
@@ -119,7 +216,7 @@ const List = ({ url }) => {
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="filter-select"
           >
-            {categories.map(category => (
+            {categoriesForFilter.map(category => (
               <option key={category} value={category}>
                 {category === 'all' ? 'All Categories' : category}
               </option>
@@ -168,6 +265,13 @@ const List = ({ url }) => {
                 />
                 <div className="product-overlay">
                   <button
+                    onClick={() => handleEdit(item)}
+                    className="edit-button"
+                    title="Edit product"
+                  >
+                    <Icon name="fa-edit" />
+                  </button>
+                  <button
                     onClick={() => removeFood(item._id, item.name)}
                     className="delete-button"
                     title="Delete product"
@@ -198,6 +302,9 @@ const List = ({ url }) => {
                   <div className="product-price">
                     ₹{item.price?.toFixed(2) || '0.00'}
                   </div>
+                  <div className="product-shipping">
+                    Shipping: ₹{item.shippingCharge?.toFixed(2) || '550.00'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -221,6 +328,120 @@ const List = ({ url }) => {
           <span>
             Showing {filteredAndSortedList.length} of {list.length} products
           </span>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingProduct && (
+        <div className="edit-modal-overlay">
+          <div className="edit-modal">
+            <div className="edit-modal-header">
+              <h3>Edit Product</h3>
+              <button onClick={cancelEdit} className="close-button">
+                <Icon name="fa-times" />
+              </button>
+            </div>
+            
+            <div className="edit-modal-content">
+              <div className="edit-form-grid">
+                <div className="edit-form-group">
+                  <label>Product Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={editFormData.name}
+                    onChange={handleEditChange}
+                    className="edit-input"
+                    required
+                  />
+                </div>
+                
+                <div className="edit-form-group">
+                  <label>Price (₹)</label>
+                  <input
+                    type="number"
+                    name="price"
+                    value={editFormData.price}
+                    onChange={handleEditChange}
+                    className="edit-input"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+                
+                <div className="edit-form-group">
+                  <label>Shipping Charge (₹)</label>
+                  <input
+                    type="number"
+                    name="shippingCharge"
+                    value={editFormData.shippingCharge}
+                    onChange={handleEditChange}
+                    className="edit-input"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+                
+                <div className="edit-form-group">
+                  <label>Category</label>
+                  <select
+                    name="category"
+                    value={editFormData.category}
+                    onChange={handleEditChange}
+                    className="edit-select"
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map((category) => (
+                      <option key={category._id} value={category._id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="edit-form-group">
+                  <label>Subcategory</label>
+                  <select
+                    name="subcategory"
+                    value={editFormData.subcategory}
+                    onChange={handleEditChange}
+                    className="edit-select"
+                  >
+                    <option value="">Select Subcategory</option>
+                    {subcategories.map((subcategory) => (
+                      <option key={subcategory._id} value={subcategory._id}>
+                        {subcategory.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div className="edit-form-group">
+                <label>Description</label>
+                <textarea
+                  name="description"
+                  value={editFormData.description}
+                  onChange={handleEditChange}
+                  className="edit-textarea"
+                  rows="4"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="edit-modal-actions">
+              <button onClick={cancelEdit} className="cancel-button">
+                Cancel
+              </button>
+              <button onClick={handleUpdateProduct} className="update-button">
+                Update Product
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

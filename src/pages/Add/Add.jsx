@@ -22,6 +22,7 @@ const Add = ({ url }) => {
         name: '',
         description: '',
         price: '',
+        shippingCharge: '550',
         category: '',
         subcategory: ''
     });
@@ -113,6 +114,7 @@ const Add = ({ url }) => {
                 name: data.name,
                 description: data.description,
                 price: Number(data.price),
+                shippingCharge: Number(data.shippingCharge),
                 category: data.category,
                 subcategory: data.subcategory,
                 image: base64Image,
@@ -125,6 +127,7 @@ const Add = ({ url }) => {
                     name: '',
                     description: '',
                     price: '',
+                    shippingCharge: '550',
                     category: categories.length > 0 ? categories[0]._id : '',
                     subcategory: ''
                 });
@@ -219,6 +222,24 @@ const Add = ({ url }) => {
                                         onChange={onChangeHandler}
                                         className="form-input"
                                         placeholder="0.00"
+                                        min="0"
+                                        step="0.01"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-grid">
+                                <div className="form-group">
+                                    <label htmlFor="shippingCharge" className="input-label">Shipping Charge (₹)</label>
+                                    <input
+                                        type="number"
+                                        id="shippingCharge"
+                                        name="shippingCharge"
+                                        value={data.shippingCharge}
+                                        onChange={onChangeHandler}
+                                        className="form-input"
+                                        placeholder="550"
                                         min="0"
                                         step="0.01"
                                         required
@@ -341,6 +362,9 @@ const Add = ({ url }) => {
                             </p>
                             <div className="preview-price">
                                 ₹{data.price || '0.00'}
+                            </div>
+                            <div className="preview-shipping">
+                                Shipping: ₹{data.shippingCharge || '550'}
                             </div>
                             <div className="preview-categories">
                                 <span className="preview-category">
